@@ -5,12 +5,13 @@
 
 import sys
 import os, fnmatch
-import datetime
+from datetime import date
 import shutil
 import pandas as pd
 import numpy as np
 
-
+sys.path.append("./load_yfinance_data/")
+sys.path.append("./scraping/")
 
 #from stockstats import StockDataFrame as Sdf
 from load_yfinance_data import *

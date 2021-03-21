@@ -52,27 +52,34 @@ def get_list_SP500(driver):
     return df["Symbol"]
 
 def get_list_CAC(driver):
+    YAHOO = False
 
-    driver.get('https://fr.finance.yahoo.com/quote/%5EFCHI/components/')
-    html_src_1 = driver.page_source
+    if (YAHOO == True):
+        driver.get('https://fr.finance.yahoo.com/quote/%5EFCHI/components/')
+        html_src_1 = driver.page_source
 
-    html_src_str_1 = str(html_src_1)
-    html_src_str_1 = html_src_str_1.replace("{",'\n')
-    html_src_str_1 = html_src_str_1.replace("}",'\n')
+        html_src_str_1 = str(html_src_1)
+        html_src_str_1 = html_src_str_1.replace("{",'\n')
+        html_src_str_1 = html_src_str_1.replace("}",'\n')
 
-    #match_1 = re.findall(r'components":[".*"],"maxAge', html_src_str_1)
-    match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
+        #match_1 = re.findall(r'components":[".*"],"maxAge', html_src_str_1)
+        match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
 
-    tmp_string = match_1[0][13:]
-    size = len(tmp_string)
-    string = tmp_string[: size - 9]
-    list_cac = string.split(",")
+        tmp_string = match_1[0][13:]
+        size = len(tmp_string)
+        string = tmp_string[: size - 9]
+        list_cac = string.split(",")
 
-    for i in range(len(list_cac)):
-        list_cac[i] = list_cac[i][1:]
-        list_cac[i] = list_cac[i][:-1]
+        for i in range(len(list_cac)):
+            list_cac[i] = list_cac[i][1:]
+            list_cac[i] = list_cac[i][:-1]
+    else:
 
-    return list_cac
+        df_html = pd.read_html('https://en.wikipedia.org/wiki/CAC_40')
+        df_cac = df_html[3]
+        list_cac = df_cac["Ticker"]
+
+        return list_cac
 
 def get_list_NYSE(driver):
 
@@ -288,6 +295,10 @@ def get_YAHOO_ticker_list():
     if (ENV_MODE == "PC"):
         driver.find_element_by_name("agree").click()
 
+    list_CAC = get_list_CAC(driver)
+    df_CAC = pd.DataFrame({'Symbol': list_CAC})
+    df_CAC.insert(len(df_CAC.columns), "Type", "CAC40")
+
     list_gainers = get_list_gainers(driver)
     df_gainers = pd.DataFrame({'Symbol': list_gainers})
     df_gainers.insert(len(df_gainers.columns), "Type", "GAINERS")
@@ -303,10 +314,6 @@ def get_YAHOO_ticker_list():
     list_most_actives = get_list_most_actives(driver)
     df_actives = pd.DataFrame({'Symbol': list_most_actives})
     df_actives.insert(len(df_actives.columns), "Type", "ACTIVES")
-
-    list_CAC = get_list_CAC(driver)
-    df_CAC = pd.DataFrame({'Symbol': list_CAC})
-    df_CAC.insert(len(df_CAC.columns), "Type", "CAC40")
 
     list_DAX = get_list_DAX(driver)
     df_DAX = pd.DataFrame({'Symbol': list_DAX})
