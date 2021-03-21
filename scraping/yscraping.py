@@ -39,17 +39,26 @@ def get_list_gainers(driver):
 
 def get_list_DJI(driver):
 
-    list_dji = ['MMM','AXP','AMGN','AAPL','BA','CAT','CVX','CSCO','KO','DOW','GS','HD','HON','IBM','INTC','JNJ','JPM','MCD','MRK','MSFT','NKE','PG','CRM','TRV','UNH','VZ','V','WBA','WMT','DIS']
+    df_html = pd.read_html('https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average')
+    df_dji = df_html[1]
+    list_dji = df_dji["Symbol"]
 
     return list_dji
 
 def get_list_SP500(driver):
+    WIKI = True
 
-    url = 'https://raw.githubusercontent.com/datasets/s-and-p-500-companies-financials/master/data/constituents.csv'
+    if WIKI == True:
+        df_html = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
+        df_sp500 = df_html[0]
+        list_sp500 = df_sp500["Symbol"]
 
-    df = pd.read_csv(url)
+        return list_sp500
+    else:
+        url = 'https://raw.githubusercontent.com/datasets/s-and-p-500-companies-financials/master/data/constituents.csv'
+        df = pd.read_csv(url)
 
-    return df["Symbol"]
+        return df["Symbol"]
 
 def get_list_CAC(driver):
     YAHOO = False
@@ -79,7 +88,7 @@ def get_list_CAC(driver):
         df_cac = df_html[3]
         list_cac = df_cac["Ticker"]
 
-        return list_cac
+    return list_cac
 
 def get_list_NYSE(driver):
 
@@ -105,25 +114,31 @@ def get_list_NYSE(driver):
     return list_nyse
 
 def get_list_DAX(driver):
+    YAHOO = False
 
-    driver.get('https://finance.yahoo.com/quote/%5EGDAXI/components?p=%5EGDAXI')
-    html_src_1 = driver.page_source
+    if (YAHOO == True):
+        driver.get('https://finance.yahoo.com/quote/%5EGDAXI/components?p=%5EGDAXI')
+        html_src_1 = driver.page_source
 
-    html_src_str_1 = str(html_src_1)
-    html_src_str_1 = html_src_str_1.replace("{",'\n')
-    html_src_str_1 = html_src_str_1.replace("}",'\n')
+        html_src_str_1 = str(html_src_1)
+        html_src_str_1 = html_src_str_1.replace("{",'\n')
+        html_src_str_1 = html_src_str_1.replace("}",'\n')
 
-    #match_1 = re.findall(r'components":[".*"],"maxAge', html_src_str_1)
-    match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
+        #match_1 = re.findall(r'components":[".*"],"maxAge', html_src_str_1)
+        match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
 
-    tmp_string = match_1[0][13:]
-    size = len(tmp_string)
-    string = tmp_string[: size - 9]
-    list_dax = string.split(",")
+        tmp_string = match_1[0][13:]
+        size = len(tmp_string)
+        string = tmp_string[: size - 9]
+        list_dax = string.split(",")
 
-    for i in range(len(list_dax)):
-        list_dax[i] = list_dax[i][1:]
-        list_dax[i] = list_dax[i][:-1]
+        for i in range(len(list_dax)):
+            list_dax[i] = list_dax[i][1:]
+            list_dax[i] = list_dax[i][:-1]
+    else:
+        df_html = pd.read_html('https://en.wikipedia.org/wiki/CAC_40')
+        df_dax = df_html[3]
+        list_dax = df_dax["Ticker"]
 
     return list_dax
 
@@ -140,29 +155,36 @@ def get_NASDAQ_ticker_list():
 def get_list_NASDAQ(driver):
 
     SCRAPING = "OFF"
+    NASDAQ_100 = True
 
-    if (SCRAPING == "ON"):
-        driver.get('https://finance.yahoo.com/quote/%5EIXIC/components?p=%5EIXIC')
-        html_src_1 = driver.page_source
+    if NASDAQ_100 == True:
+        df_html = pd.read_html('https://en.wikipedia.org/wiki/Nasdaq-100')
+        df_NASDAQ = df_html[3]
+        list_NASDAQ= df_NASDAQ["Ticker"]
 
-        html_src_str_1 = str(html_src_1)
-        html_src_str_1 = html_src_str_1.replace("{",'\n')
-        html_src_str_1 = html_src_str_1.replace("}",'\n')
-
-        #match_1 = re.findall(r'components":[".*"],"maxAge', html_src_str_1)
-        match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
-
-        tmp_string = match_1[0][13:]
-        size = len(tmp_string)
-        string = tmp_string[: size - 9]
-        list_NASDAQ = string.split(",")
-
-        for i in range(len(list_NASDAQ)):
-            list_NASDAQ[i] = list_NASDAQ[i][1:]
-            list_NASDAQ[i] = list_NASDAQ[i][:-1]
     else:
-        df_NASDAQ_ticker_list = get_NASDAQ_ticker_list()
-        list_NASDAQ = df_NASDAQ_ticker_list["Symbol"]
+        if (SCRAPING == "ON"):
+            driver.get('https://finance.yahoo.com/quote/%5EIXIC/components?p=%5EIXIC')
+            html_src_1 = driver.page_source
+
+            html_src_str_1 = str(html_src_1)
+            html_src_str_1 = html_src_str_1.replace("{",'\n')
+            html_src_str_1 = html_src_str_1.replace("}",'\n')
+
+            #match_1 = re.findall(r'components":[".*"],"maxAge', html_src_str_1)
+            match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
+
+            tmp_string = match_1[0][13:]
+            size = len(tmp_string)
+            string = tmp_string[: size - 9]
+            list_NASDAQ = string.split(",")
+
+            for i in range(len(list_NASDAQ)):
+                list_NASDAQ[i] = list_NASDAQ[i][1:]
+                list_NASDAQ[i] = list_NASDAQ[i][:-1]
+        else:
+            df_NASDAQ_ticker_list = get_NASDAQ_ticker_list()
+            list_NASDAQ = df_NASDAQ_ticker_list["Symbol"]
 
     return list_NASDAQ
 
@@ -295,10 +317,6 @@ def get_YAHOO_ticker_list():
     if (ENV_MODE == "PC"):
         driver.find_element_by_name("agree").click()
 
-    list_CAC = get_list_CAC(driver)
-    df_CAC = pd.DataFrame({'Symbol': list_CAC})
-    df_CAC.insert(len(df_CAC.columns), "Type", "CAC40")
-
     list_gainers = get_list_gainers(driver)
     df_gainers = pd.DataFrame({'Symbol': list_gainers})
     df_gainers.insert(len(df_gainers.columns), "Type", "GAINERS")
@@ -319,10 +337,6 @@ def get_YAHOO_ticker_list():
     df_DAX = pd.DataFrame({'Symbol': list_DAX})
     df_DAX.insert(len(df_DAX.columns), "Type", "DAX")
 
-    list_NYSE = get_list_NYSE(driver)
-    df_NYSE = pd.DataFrame({'Symbol': list_NYSE})
-    df_NYSE.insert(len(df_NYSE.columns), "Type", "NYSE")
-
     list_DJI = get_list_DJI(driver)
     df_DJI = pd.DataFrame({'Symbol': list_DJI})
     df_DJI.insert(len(df_DJI.columns), "Type", "DJI")
@@ -331,9 +345,17 @@ def get_YAHOO_ticker_list():
     df_NASDAQ = pd.DataFrame({'Symbol': list_NASDAQ})
     df_NASDAQ.insert(len(df_NASDAQ.columns), "Type", "NASDAQ")
 
+    list_CAC = get_list_CAC(driver)
+    df_CAC = pd.DataFrame({'Symbol': list_CAC})
+    df_CAC.insert(len(df_CAC.columns), "Type", "CAC40")
+
     list_SP500 = get_list_SP500(driver)
     df_SP500 = pd.DataFrame({'Symbol': list_SP500})
     df_SP500.insert(len(df_SP500.columns), "Type", "SP500")
+
+    #list_NYSE = get_list_NYSE(driver)
+    #df_NYSE = pd.DataFrame({'Symbol': list_NYSE})
+    #df_NYSE.insert(len(df_NYSE.columns), "Type", "NYSE")
 
     df_ticker = pd.DataFrame()
     df_ticker = df_ticker.append(df_gainers, ignore_index=True)
@@ -345,7 +367,7 @@ def get_YAHOO_ticker_list():
     df_ticker = df_ticker.append(df_DAX, ignore_index=True)
     df_ticker = df_ticker.append(df_DJI, ignore_index=True)
     df_ticker = df_ticker.append(df_SP500, ignore_index=True)
-    df_ticker = df_ticker.append(df_NYSE, ignore_index=True)
+    #df_ticker = df_ticker.append(df_NYSE, ignore_index=True)
 
     df_ticker = clean_up_df_symbol(df_ticker)
 
