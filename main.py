@@ -22,6 +22,7 @@ def print_hi(name):
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
 def mk_directories():
+    COLAB = True
 
     if not os.path.exists("./database"):
         os.makedirs("./database")
@@ -30,6 +31,9 @@ def mk_directories():
 
     if not os.path.exists("./database/" + str(today)):
         os.makedirs("./database/" + str(today))
+
+    if (COLAB == True):
+        os.makedirs("../drive/MyDrive/colab_results/MarketDailyColector/database/" + str(today))
 
 
 if __name__ == '__main__':
