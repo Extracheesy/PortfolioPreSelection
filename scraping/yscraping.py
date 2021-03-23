@@ -3,6 +3,8 @@ import re
 from selenium import webdriver
 import pandas as pd
 
+import config
+
 def get_list_gainers(driver):
 
     driver.get('https://finance.yahoo.com/gainers?offset=0&count=100')
@@ -46,9 +48,9 @@ def get_list_DJI(driver):
     return list_dji
 
 def get_list_SP500(driver):
-    WIKI = True
 
-    if WIKI == True:
+
+    if (config.WIKI == True):
         df_html = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
         df_sp500 = df_html[0]
         list_sp500 = df_sp500["Symbol"]
@@ -61,9 +63,13 @@ def get_list_SP500(driver):
         return df["Symbol"]
 
 def get_list_CAC(driver):
-    YAHOO = False
 
-    if (YAHOO == True):
+
+    if (config.WIKI == True):
+        df_html = pd.read_html('https://en.wikipedia.org/wiki/CAC_40')
+        df_cac = df_html[3]
+        list_cac = df_cac["Ticker"]
+    else:
         driver.get('https://fr.finance.yahoo.com/quote/%5EFCHI/components/')
         html_src_1 = driver.page_source
 
@@ -82,11 +88,6 @@ def get_list_CAC(driver):
         for i in range(len(list_cac)):
             list_cac[i] = list_cac[i][1:]
             list_cac[i] = list_cac[i][:-1]
-    else:
-
-        df_html = pd.read_html('https://en.wikipedia.org/wiki/CAC_40')
-        df_cac = df_html[3]
-        list_cac = df_cac["Ticker"]
 
     return list_cac
 
@@ -114,9 +115,12 @@ def get_list_NYSE(driver):
     return list_nyse
 
 def get_list_DAX(driver):
-    YAHOO = False
 
-    if (YAHOO == True):
+    if (config.WIKI == True):
+        df_html = pd.read_html('https://en.wikipedia.org/wiki/CAC_40')
+        df_dax = df_html[3]
+        list_dax = df_dax["Ticker"]
+    else:
         driver.get('https://finance.yahoo.com/quote/%5EGDAXI/components?p=%5EGDAXI')
         html_src_1 = driver.page_source
 
@@ -135,10 +139,7 @@ def get_list_DAX(driver):
         for i in range(len(list_dax)):
             list_dax[i] = list_dax[i][1:]
             list_dax[i] = list_dax[i][:-1]
-    else:
-        df_html = pd.read_html('https://en.wikipedia.org/wiki/CAC_40')
-        df_dax = df_html[3]
-        list_dax = df_dax["Ticker"]
+
 
     return list_dax
 
@@ -154,16 +155,15 @@ def get_NASDAQ_ticker_list():
 
 def get_list_NASDAQ(driver):
 
-    SCRAPING = "OFF"
-    NASDAQ_100 = True
 
-    if NASDAQ_100 == True:
+
+    if (config.NASDAQ_100 == True):
         df_html = pd.read_html('https://en.wikipedia.org/wiki/Nasdaq-100')
         df_NASDAQ = df_html[3]
         list_NASDAQ= df_NASDAQ["Ticker"]
 
     else:
-        if (SCRAPING == "ON"):
+        if (config.NASDAQ_SCRAPING == True):
             driver.get('https://finance.yahoo.com/quote/%5EIXIC/components?p=%5EIXIC')
             html_src_1 = driver.page_source
 
@@ -290,9 +290,13 @@ def clean_up_df_symbol(df_ticker):
 
 def get_YAHOO_ticker_list():
 
-    ENV_MODE = "PC"
-
-    if (ENV_MODE == "PC"):
+    if (config.COLAB == True):
+        options = webdriver.ChromeOptions()
+        options.add_argument('-headless')
+        options.add_argument('-no-sandbox')
+        options.add_argument('-disable-dev-shm-usage')
+        driver = webdriver.Chrome('chromedriver', options=options)
+    else:
         DRIVER_PATH = "C:/Users/despo/chromedriver_win32/chromedriver.exe"
         options = webdriver.ChromeOptions()
         options.add_argument('-headless')
@@ -305,16 +309,9 @@ def get_YAHOO_ticker_list():
         #driver = webdriver.Chrome(executable_path=DRIVER_PATH, options=options)
         driver = webdriver.Chrome(executable_path=DRIVER_PATH)
 
-    if (ENV_MODE == "COLAB"):
-        options = webdriver.ChromeOptions()
-        options.add_argument('-headless')
-        options.add_argument('-no-sandbox')
-        options.add_argument('-disable-dev-shm-usage')
-        driver = webdriver.Chrome('chromedriver', options=options)
-
     driver.get('https://finance.yahoo.com/gainers')
 
-    if (ENV_MODE == "PC"):
+    if (config.COLAB == False):
         driver.find_element_by_name("agree").click()
 
     list_gainers = get_list_gainers(driver)

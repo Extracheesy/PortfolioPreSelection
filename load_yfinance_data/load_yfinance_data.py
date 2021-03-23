@@ -8,8 +8,7 @@ from pandas_datareader import data as pdr
 import pandas as pd
 import numpy as np
 
-# from google.colab import files
-
+import config
 import datetime
 from datetime import date, timedelta
 
@@ -26,11 +25,10 @@ def remove_row(df,row):
 
 # Create a data folder in your current dir.
 def SaveData(df, filename):
-    COLAB = False
 
     today = str(date.today())
 
-    if COLAB == True:
+    if (config.COLAB == True):
         df.to_csv("../drive/MyDrive/colab_results/MarketDailyColector/database/" + today + "/" + filename + "_" + today + ".csv")
     else:
         df.to_csv("./database/" + today + "/" + filename + "_" + today + ".csv")

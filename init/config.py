@@ -1,2 +1,5 @@
 
 COLAB = False
+WIKI = True
+NASDAQ_SCRAPING = False
+NASDAQ_100 = True
