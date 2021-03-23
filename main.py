@@ -4,7 +4,6 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
 import sys
-import config
 import os, fnmatch
 from datetime import date
 import shutil
@@ -13,8 +12,10 @@ import numpy as np
 
 sys.path.append("./load_yfinance_data/")
 sys.path.append("./scraping/")
+sys.path.append("./init/")
 
 #from stockstats import StockDataFrame as Sdf
+import config
 from load_yfinance_data import *
 
 def print_hi(name):
