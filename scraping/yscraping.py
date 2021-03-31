@@ -159,7 +159,7 @@ def get_list_NASDAQ(driver):
 
     if (config.NASDAQ_100 == True):
         df_html = pd.read_html('https://en.wikipedia.org/wiki/Nasdaq-100')
-        df_NASDAQ = df_html[3]
+        df_NASDAQ = df_html[2]
         list_NASDAQ= df_NASDAQ["Ticker"]
 
     else:
