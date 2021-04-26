@@ -297,8 +297,8 @@ def get_YAHOO_ticker_list():
         options.add_argument('-disable-dev-shm-usage')
         driver = webdriver.Chrome('chromedriver', options=options)
     else:
-        #DRIVER_PATH = "C:/Users/despo/chromedriver_win32/chromedriver.exe"
-        DRIVER_PATH = "./chromedriver.exe"
+        DRIVER_PATH = "C:/Users/despo/chromedriver_win32/chromedriver.exe"
+        #DRIVER_PATH = "./chromedriver.exe"
         options = webdriver.ChromeOptions()
         options.add_argument('-headless')
         options.add_argument('-no-sandbox')
