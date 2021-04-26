@@ -159,7 +159,7 @@ def get_list_NASDAQ(driver):
 
     if (config.NASDAQ_100 == True):
         df_html = pd.read_html('https://en.wikipedia.org/wiki/Nasdaq-100')
-        df_NASDAQ = df_html[2]
+        df_NASDAQ = df_html[3]
         list_NASDAQ= df_NASDAQ["Ticker"]
 
     else:
@@ -297,7 +297,8 @@ def get_YAHOO_ticker_list():
         options.add_argument('-disable-dev-shm-usage')
         driver = webdriver.Chrome('chromedriver', options=options)
     else:
-        DRIVER_PATH = "C:/Users/despo/chromedriver_win32/chromedriver.exe"
+        #DRIVER_PATH = "C:/Users/despo/chromedriver_win32/chromedriver.exe"
+        DRIVER_PATH = "./chromedriver.exe"
         options = webdriver.ChromeOptions()
         options.add_argument('-headless')
         options.add_argument('-no-sandbox')
@@ -313,6 +314,10 @@ def get_YAHOO_ticker_list():
 
     if (config.COLAB == False):
         driver.find_element_by_name("agree").click()
+
+    list_NASDAQ = get_list_NASDAQ(driver)
+    df_NASDAQ = pd.DataFrame({'Symbol': list_NASDAQ})
+    df_NASDAQ.insert(len(df_NASDAQ.columns), "Type", "NASDAQ")
 
     list_gainers = get_list_gainers(driver)
     df_gainers = pd.DataFrame({'Symbol': list_gainers})
@@ -337,10 +342,6 @@ def get_YAHOO_ticker_list():
     list_DJI = get_list_DJI(driver)
     df_DJI = pd.DataFrame({'Symbol': list_DJI})
     df_DJI.insert(len(df_DJI.columns), "Type", "DJI")
-
-    list_NASDAQ = get_list_NASDAQ(driver)
-    df_NASDAQ = pd.DataFrame({'Symbol': list_NASDAQ})
-    df_NASDAQ.insert(len(df_NASDAQ.columns), "Type", "NASDAQ")
 
     list_CAC = get_list_CAC(driver)
     df_CAC = pd.DataFrame({'Symbol': list_CAC})
