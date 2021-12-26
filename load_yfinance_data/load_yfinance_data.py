@@ -97,7 +97,7 @@ def get_data_finance(date_time_str):
     if "Unnamed: 0" in df_ticker_list.columns:
         df_ticker_list = df_ticker_list.drop("Unnamed: 0", axis=1)
 
-    df_ticker_list = get_processed_signals(df_ticker_list)
+    # df_ticker_list = get_processed_signals(df_ticker_list)
 
     df_ticker_list = get_ticker_match_investing(df_ticker_list)
     # df_ticker_list = get_tech_indicator_perfo(df_ticker_list) # Replaced
