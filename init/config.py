@@ -16,19 +16,19 @@ BEST_PERCENT = 0.10 # keep best 90%
 DATA_DURATION = 365
 YEAR_OF_TRADE = 250
 
-#DATE = str(date.today())
-DATE = "2021-12-18"
+DATE = str(date.today())
+#DATE = "2021-12-30"
 
-#READ_LIST_FROM_PREVIOUS_CSV = False # Data downloaded from Yfinance
-#GET_DATA_FROM_CSV = False # Data downloaded from Yfinance
-READ_LIST_FROM_PREVIOUS_CSV = True # Data reading from previous download
-GET_DATA_FROM_CSV = True # Data reading from previous download
+READ_LIST_FROM_PREVIOUS_CSV = False # Data downloaded from Yfinance
+GET_DATA_FROM_CSV = False # Data downloaded from Yfinance
+# READ_LIST_FROM_PREVIOUS_CSV = True # Data reading from previous download
+# GET_DATA_FROM_CSV = True # Data reading from previous download
+
+DRIVER_PATH = "./chromedriver.exe"
 
 DIR = "./screening_data/"
 STOCK_DATA_DIR = ""
 OUTPUT_DIR = ""
-
-INDEX = ['^NYA','^FCHI','^GDAXI','^DJI','^IXIC','^GSPC']
 
 """
 region_idx= 
@@ -53,3 +53,13 @@ data = {'country': COUNTRY,
 # Creates pandas DataFrame.
 DF_MATCH_YAHOO_INVESTING = pd.DataFrame(data, index=YAHOO)
 
+INDEX = ['^NYA','^FCHI','^GDAXI','^DJI','^IXIC','^GSPC']
+INDEX_FULL_NAME = ['NYSE', 'CAC40', 'XETR','DJI', 'NASDAQ', 'SPX']
+
+AMERICAN_INDEX = ['NYSE', 'NASDAQ', 'SPX']
+
+# initialize data of lists.
+data_tradingview = {'index_tradingview': INDEX_FULL_NAME}
+
+# Creates pandas DataFrame.
+DF_MATCH_INDEX_FULLNAME = pd.DataFrame(data_tradingview, index=INDEX)

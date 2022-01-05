@@ -34,6 +34,10 @@ def get_rating_perfo(df_screener):
     recommendations = []
 
     for ticker in tickers:
+
+        # https://finance.yahoo.com/quote/AAPL?p=AAPL&.tsrc=fin-srch
+        # https://finance.yahoo.com/quote/TSLA?p=TSLA&.tsrc=fin-srch
+
         lhs_url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/'
         rhs_url = '?formatted=true&crumb=swg7qs5y9UP&lang=en-US&region=US&' \
                   'modules=upgradeDowngradeHistory,recommendationTrend,' \

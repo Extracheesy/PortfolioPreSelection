@@ -13,7 +13,7 @@ import datetime
 from datetime import date, timedelta
 
 from yscraping import get_YAHOO_ticker_list
-from perfo_trend import get_trend_perfo
+from perfo_trend_Minervini import get_trend_perfo
 from perfo_return import get_return_perfo
 from perfo_trend_ema import get_trend_bounce_ema
 from perfo_volatility import get_volatility_perfo
@@ -21,6 +21,7 @@ from perfo_tech_ind import get_tech_indicator_perfo
 from perfo_rating import get_rating_perfo
 from perfo_yahoo_invest import get_ticker_match_investing
 from perfo_signals import get_processed_signals
+from load_tradingview import get_tradingview_signals
 
 def lookup_fn(df, key_row, key_col):
 
@@ -97,21 +98,23 @@ def get_data_finance(date_time_str):
     if "Unnamed: 0" in df_ticker_list.columns:
         df_ticker_list = df_ticker_list.drop("Unnamed: 0", axis=1)
 
-    # df_ticker_list = get_processed_signals(df_ticker_list)
-
+    print('#################"')
     df_ticker_list = get_ticker_match_investing(df_ticker_list)
-    # df_ticker_list = get_tech_indicator_perfo(df_ticker_list) # Replaced
-
-    # df_ticker_list = get_rating_perfo(df_ticker_list) # to be completed
-
+    print('#################"')
+    df_ticker_list = get_processed_signals(df_ticker_list)
+    print('#################"')
     df_ticker_list = get_trend_perfo(df_ticker_list)
-
+    print('#################"')
     df_ticker_list = get_return_perfo(df_ticker_list)
+    print('#################"')
+    # df_ticker_list = get_tech_indicator_perfo(df_ticker_list) # Replaced
+    # df_ticker_list = get_rating_perfo(df_ticker_list) # to be completed
+    # df_ticker_list = get_trend_bounce_ema(df_ticker_list)
 
     df_ticker_list = get_volatility_perfo(df_ticker_list)
-
-    #df_ticker_list = get_trend_bounce_ema(df_ticker_list)
-
+    print('#################"')
+    df_ticker_list = get_tradingview_signals(df_ticker_list)
+    print('#################"')
     df_ticker_list.to_csv(config.OUTPUT_DIR + "Final_Screener_list.csv")
 
     return df_ticker_list

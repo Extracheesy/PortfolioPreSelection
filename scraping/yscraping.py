@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 
 from yahoo_fin import stock_info as si
+import yfinance as yf
 
 import config
 
@@ -48,7 +49,7 @@ def get_list_index_stickers(driver):
         list_nyse[i] = list_nyse[i][1:]
         list_nyse[i] = list_nyse[i][:-1]
 
-    # CAC
+    # CAC40
     df_html = pd.read_html('https://en.wikipedia.org/wiki/CAC_40')
     df_cac = df_html[3]
     list_cac = df_cac["Ticker"].tolist()
@@ -94,155 +95,126 @@ def get_stock_index_list(driver):
     return df_result
 
 def get_info_list(list_stocks):
+    list_tickers = []
     list_sectors = []
     list_industry = []
     list_company_name = []
+    list_country = []
+    list_exchange = []
+    list_yahoo_recom_mean = []
+    list_yahoo_recom_key = []
     for stock in list_stocks:
+        get_data_success = True
+        sector = '-'
+        industry = ('-')
+        company_name = ('-')
+        country = ('-')
+        exchange = ('-')
+        yahoo_recom_key = ('-')
+        yahoo_recom_mean = ('-')
         try:
-            info = si.get_company_info(stock)
-            list_sectors.append(info['Value']['sector'])
-            list_industry.append(info['Value']['industry'])
-            # quote_table = si.get_quote_table(stock, dict_result=False)
-            quote_data = si.get_quote_data(stock)
+            yf_stock = yf.Ticker(stock)
+            industry = yf_stock.info['industry']
+            sector = yf_stock.info['sector']
+            company_name = yf_stock.info['shortName']
+            country = yf_stock.info['country']
+            exchange = yf_stock.info['exchange']
+            yahoo_recom_key = yf_stock.info['recommendationKey']
+            yahoo_recom_mean = yf_stock.info['recommendationMean']
 
-            try:
-                stock_name = quote_data['shortName']
-            except:
-                try:
-                    stock_name = quote_data['longName']
-                except:
-                    stock_name = stock
-            list_company_name.append(stock_name)
+            quote_data = si.get_quote_data(stock)
+            exchange = quote_data['fullExchangeName']
         except:
             try:
-                yf_stock = yf.Ticker(stock)
-                industry = yf_stock.info['industry']
-                sector = yf_stock.info['sector']
-                shortName = yf_stock.info['shortName']
-
-                list_sectors.append(sector)
-                list_industry.append(industry)
-                list_company_name.append(shortName)
+                info = si.get_company_info(stock)
+                sector = info['Value']['sector']
+                industry = info['Value']['industry']
+                country = info['Value']['country']
+                quote_data = si.get_quote_data(stock)
+                exchange = quote_data['fullExchangeName']
+                yahoo_recommendation = quote_data['averageAnalystRating']
+                yahoo_recommendation_split = yahoo_recommendation.split(" - ")
+                yahoo_recom_mean = yahoo_recommendation_split[0]
+                yahoo_recom_key = yahoo_recommendation_split[1]
+                try:
+                    company_name = quote_data['shortName']
+                except:
+                    try:
+                        company_name = quote_data['longName']
+                    except:
+                        company_name = stock
             except:
-                list_sectors.append('-')
-                list_industry.append('-')
-                list_company_name.append('-')
+                print('error yahoo data stock: ',stock)
+                get_data_success = False
+        if get_data_success == True:
+            list_tickers.append(stock)
+            list_sectors.append(sector)
+            list_industry.append(industry)
+            list_company_name.append(company_name)
+            list_country.append(country)
+            list_exchange.append(exchange)
+            list_yahoo_recom_key.append(yahoo_recom_key)
+            list_yahoo_recom_mean.append(yahoo_recom_mean)
+        else:
+            get_data_success = True
 
-    return list_company_name, list_sectors, list_industry
+    return list_tickers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
-def make_df_stock_info(list_stock, list_company_name, list_sectors, list_industry):
+def make_df_stock_info(list_stock, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key):
     return(pd.DataFrame({'symbol': list_stock,
                          'name': list_company_name,
                          'sector': list_sectors,
-                         'industry': list_industry}))
+                         'industry': list_industry,
+                         'country': list_country,
+                         'exchange' : list_exchange,
+                         'yahoo_recom_mean': list_yahoo_recom_mean,
+                         'yahoo_recom_key': list_yahoo_recom_key}))
 
 
 def get_list_gainers(driver):
-    if config.NO_SCRAPING == True:
-        df_day_gainers = si.get_day_gainers()
-        list_gainers = df_day_gainers['Symbol'].tolist()
-        list_company_name, list_sectors, list_industry = get_info_list(list_gainers)
+    df_day_gainers = si.get_day_gainers()
+    list_gainers = df_day_gainers['Symbol'].tolist()
+    list_gainers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_gainers)
 
-        return list_gainers, list_company_name, list_sectors, list_industry
-    else:
-        driver.get('https://finance.yahoo.com/gainers?offset=0&count=100')
-        html_src_1 = driver.page_source
-        driver.get('https://finance.yahoo.com/gainers?count=100&offset=100')
-        html_src_2 = driver.page_source
-
-        html_src_str_1 = str(html_src_1)
-        html_src_str_1 = html_src_str_1.replace("{",'\n')
-        html_src_str_1 = html_src_str_1.replace("}",'\n')
-
-        html_src_str_2 = str(html_src_2)
-        html_src_str_2 = html_src_str_2.replace("{",'\n')
-        html_src_str_2 = html_src_str_2.replace("}",'\n')
-
-        match_1 = re.findall(r'"symbol":".*","shortName":', html_src_str_1)
-        match_2 = re.findall(r'"symbol":".*","shortName":', html_src_str_2)
-
-        list_gainers = []
-
-        for i in range(0,len(match_1),1):
-            tmp_string = match_1[i][10:]
-            size = len(tmp_string)
-            string = tmp_string[: size - 14]
-            list_gainers.append(string)
-
-        for i in range(0,len(match_2),1):
-            tmp_string = match_2[i][10:]
-            size = len(tmp_string)
-            string = tmp_string[: size - 14]
-            list_gainers.append(string)
-
-    return list_gainers
+    return list_gainers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
 def get_list_DJI(driver):
     df_html = pd.read_html('https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average')
     df_dji = df_html[1]
     list_dji = df_dji["Symbol"].tolist()
-    list_industry = df_dji["Industry"].tolist()
-    list_company_name = df_dji["Company"].tolist()
+    #list_industry = df_dji["Industry"].tolist()
+    #list_company_name = df_dji["Company"].tolist()
 
-    list_sectors = []
-    for stock in list_dji:
-        try:
-            info = si.get_company_info(stock)
-            list_sectors.append(info['Value']['sector'])
-        except:
-            try:
-                yf_stock = yf.Ticker(stock)
-                sector = yf_stock.info['sector']
-                list_sectors.append(sector)
-            except:
-                list_sectors.append('-')
+    list_dji, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_dji)
 
-    return list_dji, list_company_name, list_sectors, list_industry
+    return list_dji, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
 def get_list_SP500(driver):
     df_html = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
     df_sp500 = df_html[0]
     list_sp500 = df_sp500["Symbol"].to_list()
-    list_sectors = df_sp500["GICS Sector"].tolist()
-    list_industry = df_sp500["GICS Sub-Industry"].tolist()
-    list_company_name = df_sp500["Security"].tolist()
+    # list_sectors = df_sp500["GICS Sector"].tolist()
+    # list_industry = df_sp500["GICS Sub-Industry"].tolist()
+    # list_company_name = df_sp500["Security"].tolist()
 
-    return list_sp500, list_company_name, list_sectors, list_industry
+    list_sp500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_sp500)
+
+    return list_sp500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
 
 def get_list_CAC(driver):
-    if (config.WIKI == True):
-        df_html = pd.read_html('https://en.wikipedia.org/wiki/CAC_40')
-        df_cac = df_html[3]
-        list_cac = df_cac["Ticker"].tolist()
-        list_sectors = df_cac["Sector"].tolist()
-        list_industry = df_cac["GICS Sub-Industry"].tolist()
-        list_company_name = df_cac["Company"].tolist()
-    else:
-        driver.get('https://fr.finance.yahoo.com/quote/%5EFCHI/components/')
-        html_src_1 = driver.page_source
+    df_html = pd.read_html('https://en.wikipedia.org/wiki/CAC_40')
+    df_cac = df_html[3]
+    list_cac = df_cac["Ticker"].tolist()
+    # list_sectors = df_cac["Sector"].tolist()
+    # list_industry = df_cac["GICS Sub-Industry"].tolist()
+    # list_company_name = df_cac["Company"].tolist()
 
-        html_src_str_1 = str(html_src_1)
-        html_src_str_1 = html_src_str_1.replace("{",'\n')
-        html_src_str_1 = html_src_str_1.replace("}",'\n')
+    list_cac, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_cac)
 
-        #match_1 = re.findall(r'components":[".*"],"maxAge', html_src_str_1)
-        match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
-
-        tmp_string = match_1[0][13:]
-        size = len(tmp_string)
-        string = tmp_string[: size - 9]
-        list_cac = string.split(",")
-
-        for i in range(len(list_cac)):
-            list_cac[i] = list_cac[i][1:]
-            list_cac[i] = list_cac[i][:-1]
-
-    return list_cac, list_company_name, list_sectors, list_industry
-
+    return list_cac, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
 def get_list_NYSE(driver):
-
     driver.get('https://finance.yahoo.com/quote/%5ENYA/components')
     html_src_1 = driver.page_source
 
@@ -250,7 +222,6 @@ def get_list_NYSE(driver):
     html_src_str_1 = html_src_str_1.replace("{",'\n')
     html_src_str_1 = html_src_str_1.replace("}",'\n')
 
-    #match_1 = re.findall(r'components":[".*"],"maxAge', html_src_str_1)
     match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
 
     tmp_string = match_1[0][13:]
@@ -262,42 +233,24 @@ def get_list_NYSE(driver):
         list_nyse[i] = list_nyse[i][1:]
         list_nyse[i] = list_nyse[i][:-1]
 
-    list_company_name, list_sectors, list_industry = get_info_list(list_nyse)
+    list_nyse, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_nyse)
 
-    return list_nyse, list_company_name, list_sectors, list_industry
+    return list_nyse, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
 def get_list_DAX(driver):
+    df_html = pd.read_html('https://en.wikipedia.org/wiki/DAX')
+    df_dax = df_html[3]
+    list_dax = df_dax["Ticker symbol"].tolist()
+    # WARNING INDUSTRY INFO NOT IN WIKI - TO BE IMPLEMENTED LATER
+    # list_industry = df_dax["Prime Standard Sector"].tolist()
+    # list_company_name = df_dax["Company"].tolist()
+    # list_sectors = df_dax["Prime Standard Sector"].tolist()
 
-    if (config.WIKI == True):
-        df_html = pd.read_html('https://en.wikipedia.org/wiki/DAX')
-        df_dax = df_html[3]
-        list_dax = df_dax["Ticker symbol"].tolist()
-        list_sectors = df_dax["Prime Standard Sector"].tolist()
-        # WARNING INDUSTRY INFO NOT IN WIKI - TO BE IMPLEMENTED LATER
-        list_industry = df_dax["Prime Standard Sector"].tolist()
-        list_company_name = df_dax["Company"].tolist()
-    else:
-        driver.get('https://finance.yahoo.com/quote/%5EGDAXI/components?p=%5EGDAXI')
-        html_src_1 = driver.page_source
-        html_src_str_1 = str(html_src_1)
-        html_src_str_1 = html_src_str_1.replace("{",'\n')
-        html_src_str_1 = html_src_str_1.replace("}",'\n')
-        match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
-        tmp_string = match_1[0][13:]
-        size = len(tmp_string)
-        string = tmp_string[: size - 9]
-        list_dax = string.split(",")
-        for i in range(len(list_dax)):
-            list_dax[i] = list_dax[i][1:]
-            list_dax[i] = list_dax[i][:-1]
+    list_dax, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_dax)
 
-        list_company_name, list_sectors, list_industry = get_info_list(list_dax)
-
-    return list_dax, list_company_name, list_sectors, list_industry
-
+    return list_dax, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
 def get_NASDAQ_ticker_list():
-
     # list all NASDAQ stocks
     url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt"
     df = pd.read_csv(url, sep="|")
@@ -307,88 +260,28 @@ def get_NASDAQ_ticker_list():
     return df
 
 def get_list_NASDAQ(driver):
-    if (config.NO_SCRAPING == True) and (config.NASDAQ_100 == False):
+    if config.NASDAQ_100 == False:
         list_nasdaq = si.tickers_nasdaq()
-        list_company_name, list_sectors, list_industry = get_info_list(list_nasdaq)
-
-        return list_nasdaq, list_company_name, list_sectors, list_industry
+        list_nasdaq, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_nasdaq)
+        return list_nasdaq, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
     else:
-        if (config.NASDAQ_100 == True):
-            df_html = pd.read_html('https://en.wikipedia.org/wiki/Nasdaq-100')
-            df_NASDAQ = df_html[3]
-            list_nasdaq= df_NASDAQ["Ticker"].tolist()
-            list_sectors = df_NASDAQ["GICS Sector"].tolist()
-            list_industry = df_NASDAQ["GICS Sub-Industry"].tolist()
-            list_company_name = df_NASDAQ["Company"].tolist()
+        df_html = pd.read_html('https://en.wikipedia.org/wiki/Nasdaq-100')
+        df_NASDAQ = df_html[3]
+        list_nasdaq= df_NASDAQ["Ticker"].tolist()
+        # list_sectors = df_NASDAQ["GICS Sector"].tolist()
+        # list_industry = df_NASDAQ["GICS Sub-Industry"].tolist()
+        # list_company_name = df_NASDAQ["Company"].tolist()
 
-            return list_nasdaq, list_company_name, list_sectors, list_industry
-        else:
-            # CODE NO USED
-            if (config.NASDAQ_SCRAPING == True):
-                driver.get('https://finance.yahoo.com/quote/%5EIXIC/components?p=%5EIXIC')
-                html_src_1 = driver.page_source
+        list_nasdaq, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_nasdaq)
+        return list_nasdaq, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
-                html_src_str_1 = str(html_src_1)
-                html_src_str_1 = html_src_str_1.replace("{",'\n')
-                html_src_str_1 = html_src_str_1.replace("}",'\n')
-
-                #match_1 = re.findall(r'components":[".*"],"maxAge', html_src_str_1)
-                match_1 = re.findall(r'components":.*,"maxAge', html_src_str_1)
-
-                tmp_string = match_1[0][13:]
-                size = len(tmp_string)
-                string = tmp_string[: size - 9]
-                list_NASDAQ = string.split(",")
-
-                for i in range(len(list_NASDAQ)):
-                    list_NASDAQ[i] = list_NASDAQ[i][1:]
-                    list_NASDAQ[i] = list_NASDAQ[i][:-1]
-            else:
-                df_NASDAQ_ticker_list = get_NASDAQ_ticker_list()
-                list_NASDAQ = df_NASDAQ_ticker_list["Symbol"]
-
-        return list_NASDAQ
 
 def get_list_losers(driver):
-    if config.NO_SCRAPING == True:
-        df_day_losers = si.get_day_losers()
-        list_losers = df_day_losers['Symbol'].tolist()
-        list_company_name, list_sectors, list_industry = get_info_list(list_losers)
+    df_day_losers = si.get_day_losers()
+    list_losers = df_day_losers['Symbol'].tolist()
+    list_losers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_losers)
+    return list_losers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
-        return list_losers, list_company_name, list_sectors, list_industry
-    else:
-        # DEAD CODE
-        driver.get('https://finance.yahoo.com/losers?offset=0&count=100')
-        html_src_1 = driver.page_source
-        driver.get('https://finance.yahoo.com/losers?count=100&offset=100')
-        html_src_2 = driver.page_source
-
-        html_src_str_1 = str(html_src_1)
-        html_src_str_1 = html_src_str_1.replace("{",'\n')
-        html_src_str_1 = html_src_str_1.replace("}",'\n')
-
-        html_src_str_2 = str(html_src_2)
-        html_src_str_2 = html_src_str_2.replace("{",'\n')
-        html_src_str_2 = html_src_str_2.replace("}",'\n')
-
-        match_1 = re.findall(r'"symbol":".*","shortName":', html_src_str_1)
-        match_2 = re.findall(r'"symbol":".*","shortName":', html_src_str_2)
-
-        list_losers = []
-
-        for i in range(0, len(match_1), 1):
-            tmp_string = match_1[i][10:]
-            size = len(tmp_string)
-            string = tmp_string[: size - 14]
-            list_losers.append(string)
-
-        for i in range(0, len(match_2), 1):
-            tmp_string = match_2[i][10:]
-            size = len(tmp_string)
-            string = tmp_string[: size - 14]
-            list_losers.append(string)
-
-    return list_losers, list_company_name, list_sectors, list_industry
 
 def get_list_trending_tickers(driver):
     driver.get('https://finance.yahoo.com/trending-tickers')
@@ -403,47 +296,17 @@ def get_list_trending_tickers(driver):
     size = len(tmp_string)
     string = tmp_string[: size - 21]
     list_trending_tickers = string.split(",")
-    list_company_name, list_sectors, list_industry = get_info_list(list_trending_tickers)
 
-    return list_trending_tickers, list_company_name, list_sectors, list_industry
+    list_trending_tickers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_trending_tickers)
+    return list_trending_tickers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
+
 
 def get_list_most_actives(driver):
-    if config.NO_SCRAPING == True:
-        df_day_losers = si.get_day_most_active()
-        list_most_actives = df_day_losers['Symbol'].tolist()
-    else:
-        driver.get('https://finance.yahoo.com/most-active?offset=0&count=100')
-        html_src_1 = driver.page_source
-        driver.get('https://finance.yahoo.com/most-active?count=100&offset=100')
-        html_src_2 = driver.page_source
+    df_day_losers = si.get_day_most_active()
+    list_most_actives = df_day_losers['Symbol'].tolist()
 
-        html_src_str_1 = str(html_src_1)
-        html_src_str_1 = html_src_str_1.replace("{", '\n')
-        html_src_str_1 = html_src_str_1.replace("}", '\n')
-
-        html_src_str_2 = str(html_src_2)
-        html_src_str_2 = html_src_str_2.replace("{", '\n')
-        html_src_str_2 = html_src_str_2.replace("}", '\n')
-
-        match_1 = re.findall(r'"symbol":".*","shortName":', html_src_str_1)
-        match_2 = re.findall(r'"symbol":".*","shortName":', html_src_str_2)
-
-        list_most_actives = []
-        for i in range(0, len(match_1), 1):
-            tmp_string = match_1[i][10:]
-            size = len(tmp_string)
-            string = tmp_string[: size - 14]
-            list_most_actives.append(string)
-
-        for i in range(0, len(match_2), 1):
-            tmp_string = match_2[i][10:]
-            size = len(tmp_string)
-            string = tmp_string[: size - 14]
-            list_most_actives.append(string)
-
-    list_company_name, list_sectors, list_industry = get_info_list(list_most_actives)
-
-    return list_most_actives, list_company_name, list_sectors, list_industry
+    list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_most_actives)
+    return list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
 def clean_up_df_symbol(df_ticker):
     toto = len(df_ticker)
@@ -478,7 +341,6 @@ def get_YAHOO_ticker_list():
             driver = webdriver.Chrome('chromedriver', options=options)
         else:
             #DRIVER_PATH = "C:/Users/despo/chromedriver_win32/chromedriver.exe"
-            DRIVER_PATH = "./chromedriver.exe"
             options = webdriver.ChromeOptions()
             options.add_argument('-headless')
             options.headless = True
@@ -489,54 +351,55 @@ def get_YAHOO_ticker_list():
             options.add_argument('-disable-extensions')
             options.add_argument('-disable-dev-shm-usage')
             #driver = webdriver.Chrome(executable_path=DRIVER_PATH, options=options)
-            driver = webdriver.Chrome(executable_path=DRIVER_PATH, options=options)
+            driver = webdriver.Chrome(executable_path=config.DRIVER_PATH, options=options)
 
         driver.get('https://finance.yahoo.com/gainers')
 
         if (config.COLAB == False):
             driver.find_element_by_name("agree").click()
 
-        list_DAX, list_company_name, list_sectors, list_industry = get_list_DAX(driver)
-        df_DAX = make_df_stock_info(list_DAX, list_company_name, list_sectors, list_industry)
-        df_DAX.insert(len(df_DAX.columns), "Type", "-")
-
-        list_SP500, list_company_name, list_sectors, list_industry = get_list_SP500(driver)
-        df_SP500 = make_df_stock_info(list_SP500, list_company_name, list_sectors, list_industry)
-        df_SP500.insert(len(df_SP500.columns), "Type", "-")
-
-        list_CAC, list_company_name, list_sectors, list_industry = get_list_CAC(driver)
-        df_CAC = make_df_stock_info(list_CAC, list_company_name, list_sectors, list_industry)
-        df_CAC.insert(len(df_CAC.columns), "Type", "-")
-
-        list_DJI, list_company_name, list_sectors, list_industry = get_list_DJI(driver)
-        df_DJI = make_df_stock_info(list_DJI, list_company_name, list_sectors, list_industry)
-        df_DJI.insert(len(df_DJI.columns), "Type", "-")
-
-        list_most_actives, list_company_name, list_sectors, list_industry = get_list_most_actives(driver)
-        df_actives = make_df_stock_info(list_most_actives, list_company_name, list_sectors, list_industry)
+        list_DAX, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_DAX(driver)
+        df_DAX = make_df_stock_info(list_DAX, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+        df_DAX.insert(len(df_DAX.columns), "Type", "DAX")
+        print('list DAX OK')
+        list_SP500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_SP500(driver)
+        df_SP500 = make_df_stock_info(list_SP500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+        df_SP500.insert(len(df_SP500.columns), "Type", "SP500")
+        print('list SP500 OK')
+        list_CAC, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_CAC(driver)
+        df_CAC = make_df_stock_info(list_CAC, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+        df_CAC.insert(len(df_CAC.columns), "Type", "CAC40")
+        print('list CAC OK')
+        list_DJI, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_DJI(driver)
+        df_DJI = make_df_stock_info(list_DJI, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+        df_DJI.insert(len(df_DJI.columns), "Type", "DJI")
+        print('list DJI OK')
+        list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_most_actives(driver)
+        df_actives = make_df_stock_info(list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
         df_actives.insert(len(df_actives.columns), "Type", "ACTIVES")
-
-        list_trending_tickers, list_company_name, list_sectors, list_industry = get_list_trending_tickers(driver)
-        df_trending = make_df_stock_info(list_trending_tickers, list_company_name, list_sectors, list_industry)
+        print('list MOST ACTIVES OK')
+        list_trending_tickers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_trending_tickers(driver)
+        df_trending = make_df_stock_info(list_trending_tickers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
         df_trending.insert(len(df_trending.columns), "Type", "TRENDING")
-
-        list_NASDAQ, list_NASDQ_company_name, list_NASDQ_sectors, list_NASDQ_industry = get_list_NASDAQ(driver)
-        df_NASDAQ = make_df_stock_info(list_NASDAQ, list_NASDQ_company_name, list_NASDQ_sectors, list_NASDQ_industry)
-        df_NASDAQ.insert(len(df_NASDAQ.columns), "Type", "-")
-
-        list_gainers, list_company_name, list_sectors, list_industry = get_list_gainers(driver)
-        df_gainers = make_df_stock_info(list_gainers, list_company_name, list_sectors, list_industry)
+        print('list TRENDING OK')
+        list_NASDAQ, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_NASDAQ(driver)
+        df_NASDAQ = make_df_stock_info(list_NASDAQ, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+        df_NASDAQ.insert(len(df_NASDAQ.columns), "Type", "NASDAQ")
+        print('list NASDAQ OK')
+        list_gainers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_gainers(driver)
+        df_gainers = make_df_stock_info(list_gainers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
         df_gainers.insert(len(df_gainers.columns), "Type", "GAINERS")
-
-        list_losers, list_company_name, list_sectors, list_industry = get_list_losers(driver)
-        df_loosers = make_df_stock_info(list_losers, list_company_name, list_sectors, list_industry)
+        print('list GAINERS OK')
+        list_losers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_losers(driver)
+        df_loosers = make_df_stock_info(list_losers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
         df_loosers.insert(len(df_loosers.columns), "Type", "LOOSERS")
-
+        print('list LOOSERS OK')
         # NYSE nb Stokes > 4000
         if config.GET_NYSE == True:
-            list_NYSE, list_company_name, list_sectors, list_industry = get_list_NYSE(driver)
-            df_NYSE = make_df_stock_info(list_NYSE, list_company_name, list_sectors, list_industry)
-            df_NYSE.insert(len(df_NYSE.columns), "Type", "-")
+            list_NYSE, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_NYSE(driver)
+            df_NYSE = make_df_stock_info(list_NYSE, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_NYSE.insert(len(df_NYSE.columns), "Type", "NYSE")
+            print('list NYSE OK')
 
 
         df_ticker = pd.DataFrame()

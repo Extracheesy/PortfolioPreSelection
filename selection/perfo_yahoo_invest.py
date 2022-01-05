@@ -22,6 +22,7 @@ import numpy as np
 import config
 import datetime
 from datetime import date, timedelta
+from load_investing_data import investing_moving_averages
 
 def insert_df_column(df):
     columns = ["investing_symbol", "investing_country", "investing_company_name",
@@ -63,18 +64,17 @@ def get_ticker_match_investing(df_screener):
     insert_df_column(df_screener)
 
     for ticker in tickers:
+        #ticker = 'AAP'
+        #print(ticker)
         symbol = ticker
         ticker, country = get_investpy_data(ticker)
-        if symbol == 'ACT':
-            print('ACT')
-
         try:
             if (symbol == 'AAP') or (symbol == 'AME') or (symbol == 'BA') or (symbol == 'CI') or (symbol == 'MA'):
                 search_result_list = investpy.search_quotes(text=ticker, countries=country, products=['stocks'], n_results=3)
                 search_result = search_result_list[1]
             else:
                 search_result = investpy.search_quotes(text=ticker, countries=country, products=['stocks'], n_results=1)
-            # information = search_result.retrieve_information()
+            information = search_result.retrieve_information()
             technical_indicators = search_result.retrieve_technical_indicators(interval='daily')
 
             df_screener['investing_symbol'] = np.where(df_screener['symbol'] == symbol,
@@ -136,13 +136,25 @@ def get_ticker_match_investing(df_screener):
             df_screener['BUY'] = np.where(df_screener['symbol'] == symbol,
                                           round(buy/(len(technical_indicators.signal) - 1)*100, 1),
                                           df_screener['BUY'])
-
             try:
-                # sma_ema_indicators = investpy.moving_averages(name=ticker, country=country[0], product_type='stock',
-                #                                              interval='daily')
-                sma_ema_indicators = investpy.moving_averages(name=search_result.symbol, country=search_result.country, product_type='stock',
+                sma_ema_indicators = investpy.moving_averages(name=search_result.symbol,
+                                                              country=search_result.country,
+                                                              product_type='stock',
                                                               interval='daily')
+                sma_ema_found = True
+            except:
+                try:
+                    sma_ema_indicators = investing_moving_averages(name=search_result.symbol,
+                                                                   country=search_result.country,
+                                                                   id=search_result.id_,
+                                                                   product_type='stock',
+                                                                   interval='daily')
+                    sma_ema_found = True
+                except:
+                    print("No sma ema Investing.com data for ", symbol)
+                    sma_ema_found = False
 
+            if sma_ema_found == True:
                 df_screener['EMA_5'] = np.where(df_screener['symbol'] == symbol,
                                                 sma_ema_indicators.sma_signal[0],
                                                 df_screener['EMA_5'])
@@ -178,8 +190,6 @@ def get_ticker_match_investing(df_screener):
                 df_screener['BUY_SMA_EMA'] = np.where(df_screener['symbol'] == symbol,
                                                       round(buy/((len(sma_ema_indicators.ema_signal) + len(sma_ema_indicators.sma_signal)))*100, 1),
                                                       df_screener['BUY_SMA_EMA'])
-            except:
-                print("No sma ema Investing.com data for ",symbol)
         except:
             print("No Investing.com data for ",symbol)
         search_result = ""
