@@ -23,6 +23,9 @@ from pandas_datareader import data as pdr
 import pandas as pd
 import numpy as np
 
+from yahoo_fin import stock_info as si
+import yfinance as yf
+
 import config
 import datetime
 from datetime import date, timedelta
@@ -38,10 +41,19 @@ def get_trend_perfo(df_screener):
     exportList = pd.DataFrame(
         columns=['Stock', "RS_Rating", "50 Day MA", "150 Day Ma", "200 Day MA", "52 Week Low", "52 week High"])
 
-    for index_name in config.INDEX:
-        tickers = df_screener[df_screener['idx'] == index_name]['symbol'].tolist()
+    index_list = np.unique(df_screener['exchange']).tolist()
+
+    #for index_name in config.INDEX:
+    for index_name in index_list:
+
+        
+        yf_stock = yf.Ticker(index_name)
+
+        tickers = df_screener[df_screener['exchange'] == index_name]['symbol'].tolist()
         returns_multiples = []
         returns_tickers = []
+
+
 
         # Index Returns
         index_df = pd.read_csv(config.STOCK_DATA_DIR+index_name+'.csv')

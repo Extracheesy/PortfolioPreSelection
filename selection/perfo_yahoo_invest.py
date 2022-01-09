@@ -56,7 +56,7 @@ def get_investpy_data(ticker):
 
 def get_ticker_match_investing(df_screener):
     len_df = len(df_screener)
-    df_screener = df_screener.drop(df_screener[(df_screener.idx == '-')].index)
+    # df_screener = df_screener.drop(df_screener[(df_screener.idx == '-')].index)
     df_screener.drop(df_screener[df_screener.symbol == 'CON.DE'].index, inplace=True)
     print("remove tickers with no index: ", len_df - len(df_screener))
 

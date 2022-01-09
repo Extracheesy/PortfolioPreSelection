@@ -94,6 +94,78 @@ def get_stock_index_list(driver):
 
     return df_result
 
+def get_df_info_list(list_stocks):
+    list_tickers = []
+    list_sectors = []
+    list_industry = []
+    list_company_name = []
+    list_country = []
+    list_exchange = []
+    list_yahoo_recom_mean = []
+    list_yahoo_recom_key = []
+    for stock in list_stocks:
+        get_data_success = True
+        sector = '-'
+        industry = ('-')
+        company_name = ('-')
+        country = ('-')
+        exchange = ('-')
+        yahoo_recom_key = ('-')
+        yahoo_recom_mean = ('-')
+        try:
+            yf_stock = yf.Ticker(stock)
+            industry = yf_stock.info['industry']
+            sector = yf_stock.info['sector']
+            company_name = yf_stock.info['shortName']
+            country = yf_stock.info['country']
+            exchange = yf_stock.info['exchange']
+            yahoo_recom_key = yf_stock.info['recommendationKey']
+            yahoo_recom_mean = yf_stock.info['recommendationMean']
+
+            quote_data = si.get_quote_data(stock)
+            exchange = quote_data['fullExchangeName']
+        except:
+            try:
+                info = si.get_company_info(stock)
+                sector = info['Value']['sector']
+                industry = info['Value']['industry']
+                country = info['Value']['country']
+                quote_data = si.get_quote_data(stock)
+                exchange = quote_data['fullExchangeName']
+                yahoo_recommendation = quote_data['averageAnalystRating']
+                yahoo_recommendation_split = yahoo_recommendation.split(" - ")
+                yahoo_recom_mean = yahoo_recommendation_split[0]
+                yahoo_recom_key = yahoo_recommendation_split[1]
+                try:
+                    company_name = quote_data['shortName']
+                except:
+                    try:
+                        company_name = quote_data['longName']
+                    except:
+                        company_name = stock
+            except:
+                print('error yahoo data stock: ',stock)
+                get_data_success = False
+        if get_data_success == True:
+            # print('get yahoo data stock: ', stock)
+            list_tickers.append(stock)
+            list_sectors.append(sector)
+            list_industry.append(industry)
+            list_company_name.append(company_name)
+            list_country.append(country)
+            list_exchange.append(exchange)
+            list_yahoo_recom_key.append(yahoo_recom_key)
+            list_yahoo_recom_mean.append(yahoo_recom_mean)
+        else:
+            get_data_success = True
+
+    df = make_df_stock_info(list_tickers, list_company_name,
+                            list_sectors, list_industry,
+                            list_country, list_exchange,
+                            list_yahoo_recom_mean, list_yahoo_recom_key)
+
+    return df
+
 def get_info_list(list_stocks):
     list_tickers = []
     list_sectors = []
@@ -147,6 +219,7 @@ def get_info_list(list_stocks):
                 print('error yahoo data stock: ',stock)
                 get_data_success = False
         if get_data_success == True:
+            print('get yahoo data stock: ', stock)
             list_tickers.append(stock)
             list_sectors.append(sector)
             list_industry.append(industry)
@@ -308,6 +381,105 @@ def get_list_most_actives(driver):
     list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_info_list(list_most_actives)
     return list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key
 
+def get_global_ticker_list(driver):
+    df_result = pd.DataFrame()
+    try:
+        list_sp500 = si.tickers_sp500()
+        df_sp500 = pd.DataFrame({'symbol': list_sp500})
+        df_result = df_result.append(df_sp500)
+    except:
+        print("no symbol sp500")
+    try:
+        list_dow = si.tickers_dow()
+        df_dow = pd.DataFrame({'symbol': list_dow})
+        df_result = df_result.append(df_dow)
+    except:
+        print("no symbol dji")
+    try:
+        list_nasdaq = si.tickers_nasdaq()
+        df_nasdaq = pd.DataFrame({'symbol': list_nasdaq})
+        df_result = df_result.append(df_nasdaq)
+    except:
+        print("no symbol nasdaq")
+    try:
+        list_ftse100 = si.tickers_ftse100()
+        df_ftse100 = pd.DataFrame({'symbol': list_ftse100})
+        df_result = df_result.append(df_ftse100)
+    except:
+        print("no symbol ftse100")
+    try:
+        list_ftse250 = si.tickers_ftse250()
+        df_ftse250 = pd.DataFrame({'symbol': list_ftse250})
+        df_result = df_result.append(df_ftse250)
+    except:
+        print("no symbol ftse250")
+    try:
+        list_ibovespa = si.tickers_ibovespa()
+        df_ibovespa = pd.DataFrame({'symbol': list_ibovespa})
+        df_result = df_result.append(df_ibovespa)
+    except:
+        print("no symbol ibovespa")
+    try:
+        list_nifty50 = si.tickers_nifty50()
+        df_nifty50 = pd.DataFrame({'symbol': list_nifty50})
+        df_result = df_result.append(df_nifty50)
+    except:
+        print("no symbol nifty50")
+    try:
+        list_niftybank = si.tickers_niftybank()
+        df_niftybank = pd.DataFrame({'symbol': list_niftybank})
+        df_result = df_result.append(df_niftybank)
+    except:
+        print("no symbol niftybank")
+    try:
+        list_other = si.tickers_other()
+        df_other = pd.DataFrame({'symbol': list_other})
+        df_result = df_result.append(df_other)
+    except:
+        print("no symbol other")
+
+    try:
+        list_gainers = si.get_day_gainers()
+        df_gainers = pd.DataFrame({'symbol': list_gainers})
+        df_result = df_result.append(df_gainers)
+    except:
+        print("no symbol gainers")
+
+    try:
+        list_active = si.get_day_most_active()
+        df_active = pd.DataFrame({'symbol': list_active})
+        df_result = df_result.append(df_active)
+    except:
+        print("no symbol most active")
+
+    try:
+        list_losers = si.get_day_losers()
+        df_losers = pd.DataFrame({'symbol': list_losers})
+        df_result = df_result.append(df_losers)
+    except:
+        print("no symbol losers")
+
+    list_nyse, list_cac, list_dax = get_list_index_stickers(driver)
+    df_nyse = pd.DataFrame({'symbol': list_nyse})
+    df_result = df_result.append(df_nyse)
+    df_cac = pd.DataFrame({'symbol': list_cac})
+    df_result = df_result.append(df_cac)
+    df_dax = pd.DataFrame({'symbol': list_dax})
+    df_result = df_result.append(df_dax)
+
+    df_result.drop_duplicates(["symbol"], keep='first', inplace=True)
+    df_result.sort_values(by=['symbol'], inplace=True)
+
+    print("dump info to ticker_global_stock_list.csv")
+    df_result.to_csv(config.OUTPUT_DIR + "ticker_global_stock_list.csv")
+
+    list_symbol = df_result["symbol"].to_list()
+    df_result = get_df_info_list(list_symbol)
+
+    df_result.to_csv(config.OUTPUT_DIR + "ticker_global_stock_info_list.csv")
+
+    return df_result
+
 def clean_up_df_symbol(df_ticker):
     toto = len(df_ticker)
     print("ticker nb: ",len(df_ticker))
@@ -358,71 +530,72 @@ def get_YAHOO_ticker_list():
         if (config.COLAB == False):
             driver.find_element_by_name("agree").click()
 
-        list_DAX, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_DAX(driver)
-        df_DAX = make_df_stock_info(list_DAX, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-        df_DAX.insert(len(df_DAX.columns), "Type", "DAX")
-        print('list DAX OK')
-        list_SP500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_SP500(driver)
-        df_SP500 = make_df_stock_info(list_SP500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-        df_SP500.insert(len(df_SP500.columns), "Type", "SP500")
-        print('list SP500 OK')
-        list_CAC, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_CAC(driver)
-        df_CAC = make_df_stock_info(list_CAC, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-        df_CAC.insert(len(df_CAC.columns), "Type", "CAC40")
-        print('list CAC OK')
-        list_DJI, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_DJI(driver)
-        df_DJI = make_df_stock_info(list_DJI, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-        df_DJI.insert(len(df_DJI.columns), "Type", "DJI")
-        print('list DJI OK')
-        list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_most_actives(driver)
-        df_actives = make_df_stock_info(list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-        df_actives.insert(len(df_actives.columns), "Type", "ACTIVES")
-        print('list MOST ACTIVES OK')
-        list_trending_tickers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_trending_tickers(driver)
-        df_trending = make_df_stock_info(list_trending_tickers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-        df_trending.insert(len(df_trending.columns), "Type", "TRENDING")
-        print('list TRENDING OK')
-        list_NASDAQ, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_NASDAQ(driver)
-        df_NASDAQ = make_df_stock_info(list_NASDAQ, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-        df_NASDAQ.insert(len(df_NASDAQ.columns), "Type", "NASDAQ")
-        print('list NASDAQ OK')
-        list_gainers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_gainers(driver)
-        df_gainers = make_df_stock_info(list_gainers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-        df_gainers.insert(len(df_gainers.columns), "Type", "GAINERS")
-        print('list GAINERS OK')
-        list_losers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_losers(driver)
-        df_loosers = make_df_stock_info(list_losers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-        df_loosers.insert(len(df_loosers.columns), "Type", "LOOSERS")
-        print('list LOOSERS OK')
-        # NYSE nb Stokes > 4000
-        if config.GET_NYSE == True:
-            list_NYSE, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_NYSE(driver)
-            df_NYSE = make_df_stock_info(list_NYSE, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
-            df_NYSE.insert(len(df_NYSE.columns), "Type", "NYSE")
-            print('list NYSE OK')
+        test_global = True
+        if test_global == True:
+            df_ticker = get_global_ticker_list(driver)
+        else:
+            list_SP500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_SP500(driver)
+            df_SP500 = make_df_stock_info(list_SP500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_SP500.insert(len(df_SP500.columns), "Type", "SP500")
+            print('list SP500 OK')
+            list_DAX, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_DAX(driver)
+            df_DAX = make_df_stock_info(list_DAX, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_DAX.insert(len(df_DAX.columns), "Type", "DAX")
+            print('list DAX OK')
+            list_CAC, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_CAC(driver)
+            df_CAC = make_df_stock_info(list_CAC, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_CAC.insert(len(df_CAC.columns), "Type", "CAC40")
+            print('list CAC OK')
+            list_DJI, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_DJI(driver)
+            df_DJI = make_df_stock_info(list_DJI, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_DJI.insert(len(df_DJI.columns), "Type", "DJI")
+            print('list DJI OK')
+            list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_most_actives(driver)
+            df_actives = make_df_stock_info(list_most_actives, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_actives.insert(len(df_actives.columns), "Type", "ACTIVES")
+            print('list MOST ACTIVES OK')
+            list_trending_tickers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_trending_tickers(driver)
+            df_trending = make_df_stock_info(list_trending_tickers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_trending.insert(len(df_trending.columns), "Type", "TRENDING")
+            print('list TRENDING OK')
+            list_NASDAQ, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_NASDAQ(driver)
+            df_NASDAQ = make_df_stock_info(list_NASDAQ, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_NASDAQ.insert(len(df_NASDAQ.columns), "Type", "NASDAQ")
+            print('list NASDAQ OK')
+            list_gainers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_gainers(driver)
+            df_gainers = make_df_stock_info(list_gainers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_gainers.insert(len(df_gainers.columns), "Type", "GAINERS")
+            print('list GAINERS OK')
+            list_losers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_losers(driver)
+            df_loosers = make_df_stock_info(list_losers, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+            df_loosers.insert(len(df_loosers.columns), "Type", "LOOSERS")
+            print('list LOOSERS OK')
+            # NYSE nb Stokes > 4000
+            if config.GET_NYSE == True:
+                list_NYSE, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_NYSE(driver)
+                df_NYSE = make_df_stock_info(list_NYSE, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
+                df_NYSE.insert(len(df_NYSE.columns), "Type", "NYSE")
+                print('list NYSE OK')
 
 
-        df_ticker = pd.DataFrame()
-        df_ticker = df_ticker.append(df_gainers, ignore_index=True)
-        df_ticker = df_ticker.append(df_actives, ignore_index=True)
-        df_ticker = df_ticker.append(df_trending, ignore_index=True)
-        df_ticker = df_ticker.append(df_loosers, ignore_index=True)
-        df_ticker = df_ticker.append(df_CAC, ignore_index=True)
-        df_ticker = df_ticker.append(df_NASDAQ, ignore_index=True)
-        df_ticker = df_ticker.append(df_DAX, ignore_index=True)
-        df_ticker = df_ticker.append(df_DJI, ignore_index=True)
-        df_ticker = df_ticker.append(df_SP500, ignore_index=True)
-        if config.GET_NYSE == True:
-            df_ticker = df_ticker.append(df_NYSE, ignore_index=True)
-
-        # df_ticker.to_csv(config.DIR + "before_dump_stock_info.csv")
+            df_ticker = pd.DataFrame()
+            df_ticker = df_ticker.append(df_gainers, ignore_index=True)
+            df_ticker = df_ticker.append(df_actives, ignore_index=True)
+            df_ticker = df_ticker.append(df_trending, ignore_index=True)
+            df_ticker = df_ticker.append(df_loosers, ignore_index=True)
+            df_ticker = df_ticker.append(df_CAC, ignore_index=True)
+            df_ticker = df_ticker.append(df_NASDAQ, ignore_index=True)
+            df_ticker = df_ticker.append(df_DAX, ignore_index=True)
+            df_ticker = df_ticker.append(df_DJI, ignore_index=True)
+            df_ticker = df_ticker.append(df_SP500, ignore_index=True)
+            if config.GET_NYSE == True:
+                df_ticker = df_ticker.append(df_NYSE, ignore_index=True)
+            df_all_index = get_stock_index_list(driver)
+            df_ticker = set_df_index(df_ticker, df_all_index)
 
         df_ticker = drop_df_duplicates(df_ticker)
 
         #df_ticker = clean_up_df_symbol(df_ticker)
-
-        df_all_index = get_stock_index_list(driver)
-        df_ticker = set_df_index(df_ticker, df_all_index)
 
         df_ticker.sort_values(by='symbol', inplace=True, ascending=True)
         df_ticker = df_ticker.reset_index()

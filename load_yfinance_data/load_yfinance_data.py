@@ -86,10 +86,15 @@ def get_data_finance(date_time_str):
 
     df_ticker_list = pd.DataFrame()
 
-    # Get ticker list
+    # Get full ticker list
+    print('######## get_YAHOO_ticker_list #########"')
     df_ticker_list = get_YAHOO_ticker_list()
 
-    # SaveData(df_ticker_list, "tickerdata")
+    print('######## get_ticker_match_investing #########"')
+    df_ticker_list = get_ticker_match_investing(df_ticker_list)
+
+
+
 
     df_ticker_list = DownloadFromYahooData(df_ticker_list, date_time_str)
 
@@ -98,23 +103,26 @@ def get_data_finance(date_time_str):
     if "Unnamed: 0" in df_ticker_list.columns:
         df_ticker_list = df_ticker_list.drop("Unnamed: 0", axis=1)
 
-    print('#################"')
-    df_ticker_list = get_ticker_match_investing(df_ticker_list)
-    print('#################"')
+    # SaveData(df_ticker_list, "tickerdata")
+
+
+
+
+    print('######## get_processed_signals #########"')
     df_ticker_list = get_processed_signals(df_ticker_list)
-    print('#################"')
+    print('######## get_trend_perfo #########"')
     df_ticker_list = get_trend_perfo(df_ticker_list)
-    print('#################"')
+    print('######## get_return_perfo #########"')
     df_ticker_list = get_return_perfo(df_ticker_list)
-    print('#################"')
+    print('######## get_volatility_perfo #########"')
     # df_ticker_list = get_tech_indicator_perfo(df_ticker_list) # Replaced
     # df_ticker_list = get_rating_perfo(df_ticker_list) # to be completed
     # df_ticker_list = get_trend_bounce_ema(df_ticker_list)
 
     df_ticker_list = get_volatility_perfo(df_ticker_list)
-    print('#################"')
+    print('######### get_tradingview_signals ########"')
     df_ticker_list = get_tradingview_signals(df_ticker_list)
-    print('#################"')
+    print('######## to_csv #########"')
     df_ticker_list.to_csv(config.OUTPUT_DIR + "Final_Screener_list.csv")
 
     return df_ticker_list
