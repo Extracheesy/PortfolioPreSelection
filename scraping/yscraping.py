@@ -3,6 +3,9 @@ import re
 from selenium import webdriver
 import pandas as pd
 import numpy as np
+#import asyncio
+
+import concurrent.futures
 
 from yahoo_fin import stock_info as si
 import yfinance as yf
@@ -147,7 +150,7 @@ def get_df_info_list(list_stocks):
                 print('error yahoo data stock: ',stock)
                 get_data_success = False
         if get_data_success == True:
-            # print('get yahoo data stock: ', stock)
+            print('get yahoo data stock: ', stock)
             list_tickers.append(stock)
             list_sectors.append(sector)
             list_industry.append(industry)
@@ -473,11 +476,6 @@ def get_global_ticker_list(driver):
     print("dump info to ticker_global_stock_list.csv")
     df_result.to_csv(config.OUTPUT_DIR + "ticker_global_stock_list.csv")
 
-    list_symbol = df_result["symbol"].to_list()
-    df_result = get_df_info_list(list_symbol)
-
-    df_result.to_csv(config.OUTPUT_DIR + "ticker_global_stock_info_list.csv")
-
     return df_result
 
 def clean_up_df_symbol(df_ticker):
@@ -496,6 +494,13 @@ def clean_up_df_symbol(df_ticker):
     print("ticker removed: ", toto - len(df_ticker))
     return df_ticker
 
+def split_list(a_list, size_split):
+    return a_list[:size_split], a_list[size_split:]
+
+async def get_asyncio_df_info_list(call_list):
+    df_result = asyncio.gather(*call_list)
+    return df_result
+
 def get_YAHOO_ticker_list():
     # Get the current working directory
     cwd = os.getcwd()
@@ -503,7 +508,10 @@ def get_YAHOO_ticker_list():
     print("Current working directory: {0}".format(cwd))
 
     if config.READ_LIST_FROM_PREVIOUS_CSV == True:
-        df_ticker = pd.read_csv(config.OUTPUT_DIR+"dump_stock_info.csv")
+        if config.TEST_GLOBAL == True:
+            df_ticker = pd.read_csv(config.OUTPUT_DIR + "ticker_global_stock_info_list.csv")
+        else:
+            df_ticker = pd.read_csv(config.OUTPUT_DIR + "dump_stock_info.csv")
     else:
         if (config.COLAB == True):
             options = webdriver.ChromeOptions()
@@ -530,9 +538,51 @@ def get_YAHOO_ticker_list():
         if (config.COLAB == False):
             driver.find_element_by_name("agree").click()
 
-        test_global = True
-        if test_global == True:
-            df_ticker = get_global_ticker_list(driver)
+        if config.TEST_GLOBAL == True:
+            if config.READ_GLOBAL_LIST_FROM_PREVIOUS_CSV == True:
+                df_ticker = pd.read_csv(config.OUTPUT_DIR + "ticker_global_stock_list.csv")
+                df_ticker.drop(df_ticker.filter(regex="Unnamed: 0"), axis=1, inplace=True)
+                df_ticker.dropna(inplace=True)
+                df_ticker.reset_index(inplace=True, drop=True)
+            else:
+                df_ticker = get_global_ticker_list(driver)
+
+            list_symbol = df_ticker["symbol"].to_list()
+
+            len_global_list_symbol = len(list_symbol)
+            len_split_global_list_symbol = int(len_global_list_symbol / config.NB_SPLIT_LIST_SYMBOL)
+
+            rest_of_the_list = list_symbol
+            global_split_list = []
+            for i in range(config.NB_SPLIT_LIST_SYMBOL):
+                splited_list, rest_of_the_list = split_list(rest_of_the_list, len_split_global_list_symbol)
+                global_split_list.append(splited_list)
+
+            if len(rest_of_the_list) > 1:
+                global_split_list.append(rest_of_the_list)
+
+            call_list = []
+            # for i in range(config.NB_SPLIT_LIST_SYMBOL):
+            #    call_list.append(get_df_info_list(global_split_list[i]))
+
+            if config.ASYNCIO == True:
+                # asyncio.run(get_asyncio_df_info_list(call_list))
+
+                # this is the event loop
+                # loop = asyncio.get_event_loop()
+
+                # schedule coroutines to run on the event loop
+                # loop.run_until_complete(asyncio.gather(call_list[2], call_list[3]))
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=config.NUM_THREADS) as executor:
+                    executor.map(get_df_info_list, global_split_list)
+
+            else:
+                df_result = get_df_info_list(list_symbol)
+
+            df_result.to_csv(config.OUTPUT_DIR + "ticker_global_stock_info_list.csv")
+
+            return df_result
         else:
             list_SP500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key = get_list_SP500(driver)
             df_SP500 = make_df_stock_info(list_SP500, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
@@ -576,7 +626,6 @@ def get_YAHOO_ticker_list():
                 df_NYSE = make_df_stock_info(list_NYSE, list_company_name, list_sectors, list_industry, list_country, list_exchange, list_yahoo_recom_mean, list_yahoo_recom_key)
                 df_NYSE.insert(len(df_NYSE.columns), "Type", "NYSE")
                 print('list NYSE OK')
-
 
             df_ticker = pd.DataFrame()
             df_ticker = df_ticker.append(df_gainers, ignore_index=True)

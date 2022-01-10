@@ -12,6 +12,7 @@ import numpy as np
 
 sys.path.append("./load_yfinance_data/")
 sys.path.append("./scraping/")
+sys.path.append("./selection/")
 sys.path.append("./init/")
 
 #from stockstats import StockDataFrame as Sdf

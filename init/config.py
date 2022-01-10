@@ -16,8 +16,17 @@ BEST_PERCENT = 0.10 # keep best 90%
 DATA_DURATION = 365
 YEAR_OF_TRADE = 250
 
-DATE = str(date.today())
-#DATE = "2021-12-30"
+#DATE = str(date.today())
+DATE = "2022-01-08"
+
+TEST_GLOBAL = True
+# TEST_GLOBAL = False
+ASYNCIO = True
+NB_SPLIT_LIST_SYMBOL = 30
+NUM_THREADS = 30
+
+READ_GLOBAL_LIST_FROM_PREVIOUS_CSV = True
+# READ_GLOBAL_LIST_FROM_PREVIOUS_CSV = False
 
 READ_LIST_FROM_PREVIOUS_CSV = False # Data downloaded from Yfinance
 GET_DATA_FROM_CSV = False # Data downloaded from Yfinance
