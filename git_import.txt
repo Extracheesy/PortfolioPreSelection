@@ -3,4 +3,4 @@ pip list --format=freeze > req.txt
 conda env export > environment_RL_Traiding_test_2.yml
 
 # GIT Clone
-!git clone https://github.com/Extracheesy/RL_trading_test_2.git
+!git clone https://github.com/Extracheesy/PortfolioPreSelection.git
