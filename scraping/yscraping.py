@@ -12,6 +12,9 @@ import concurrent.futures
 from yahoo_fin import stock_info as si
 import yfinance as yf
 
+from tools import merge_csv_to_df
+from tools import split_list_into_list
+
 import config
 
 def drop_df_duplicates(df):
@@ -174,6 +177,7 @@ def get_df_info_list(list_stocks):
     return df
 
 def get_multithreading_df_info_list(list_stocks):
+    list_failed_tickers = []
     list_tickers = []
     list_sectors = []
     list_industry = []
@@ -193,6 +197,7 @@ def get_multithreading_df_info_list(list_stocks):
         yahoo_recom_mean = ('-')
         try:
             yf_stock = yf.Ticker(stock)
+            # time.sleep(0.25)
             industry = yf_stock.info['industry']
             sector = yf_stock.info['sector']
             company_name = yf_stock.info['shortName']
@@ -217,6 +222,7 @@ def get_multithreading_df_info_list(list_stocks):
             list_yahoo_recom_key.append(yahoo_recom_key)
             list_yahoo_recom_mean.append(yahoo_recom_mean)
         else:
+            list_failed_tickers.append(stock)
             get_data_success = True
 
     df = make_df_stock_info(list_tickers, list_company_name,
@@ -224,8 +230,13 @@ def get_multithreading_df_info_list(list_stocks):
                             list_country, list_exchange,
                             list_yahoo_recom_mean, list_yahoo_recom_key)
 
-    filename = config.OUTPUT_POOL_DIR + str(uuid.uuid4()) + '.csv'
+    filename = config.OUTPUT_POOL_DIR + str(uuid.uuid4()) + '_result.csv'
     df.to_csv(filename)
+
+    d = {'symbol': list_failed_tickers}
+    df_failed_stickers = pd.DataFrame(data=d)
+    filename = config.OUTPUT_POOL_DIR + str(uuid.uuid4()) + '_failed_tickers.csv'
+    df_failed_stickers.to_csv(filename)
 
 
 def get_info_list(list_stocks):
@@ -553,9 +564,6 @@ def clean_up_df_symbol(df_ticker):
     print("ticker removed: ", toto - len(df_ticker))
     return df_ticker
 
-def split_list(a_list, size_split):
-    return a_list[:size_split], a_list[size_split:]
-
 async def get_asyncio_df_info_list(call_list):
     df_result = asyncio.gather(*call_list)
     return df_result
@@ -608,17 +616,7 @@ def get_YAHOO_ticker_list():
 
             list_symbol = df_ticker["symbol"].to_list()
 
-            len_global_list_symbol = len(list_symbol)
-            len_split_global_list_symbol = int(len_global_list_symbol / config.NB_SPLIT_LIST_SYMBOL)
-
-            rest_of_the_list = list_symbol
-            global_split_list = []
-            for i in range(config.NB_SPLIT_LIST_SYMBOL):
-                splited_list, rest_of_the_list = split_list(rest_of_the_list, len_split_global_list_symbol)
-                global_split_list.append(splited_list)
-
-            if len(rest_of_the_list) > 1:
-                global_split_list.append(rest_of_the_list)
+            global_split_list = split_list_into_list(list_symbol)
 
             call_list = []
             # for i in range(config.NB_SPLIT_LIST_SYMBOL):
@@ -630,6 +628,20 @@ def get_YAHOO_ticker_list():
                 with concurrent.futures.ThreadPoolExecutor(max_workers=config.NUM_THREADS) as executor:
                     executor.map(get_multithreading_df_info_list, global_split_list)
                 print("MULTITHREADING RUNTIME: ", datetime.datetime.now().now() - START_TIME)
+
+                df_ticker_failed = merge_csv_to_df(config.OUTPUT_POOL_DIR, "*_failed_tickers.csv")
+                df_ticker_failed.to_csv(config.OUTPUT_DIR + "failed_ticker.csv")
+                list_failed = df_ticker_failed["symbol"].to_list()
+                global_failed_split_list = split_list_into_list(list_failed)
+
+                print("MULTITHREADING START - RUN FOR FAILED")
+                START_TIME = datetime.datetime.now().now()
+                with concurrent.futures.ThreadPoolExecutor(max_workers=config.NUM_THREADS) as executor:
+                    executor.map(get_multithreading_df_info_list, global_failed_split_list)
+                print("MULTITHREADING RUNTIME - FOR FAILED: ", datetime.datetime.now().now() - START_TIME)
+
+                df_result = merge_csv_to_df(config.OUTPUT_POOL_DIR, "*_result.csv")
+
             elif config.ASYNCIO == True:
                 print("ASYNCIO")
                 # asyncio.run(get_asyncio_df_info_list(call_list))
