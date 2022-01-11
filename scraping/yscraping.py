@@ -616,6 +616,9 @@ def get_YAHOO_ticker_list():
 
             list_symbol = df_ticker["symbol"].to_list()
 
+            # CEDE Debug:
+            # list_symbol = list_symbol[:1000]
+
             global_split_list = split_list_into_list(list_symbol)
 
             call_list = []
