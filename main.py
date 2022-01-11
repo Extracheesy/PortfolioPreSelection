@@ -41,6 +41,13 @@ def mk_directories(date_day):
         os.makedirs("./screening_data/" + date_day + "/output/")
     config.OUTPUT_DIR = "./screening_data/" + date_day + "/output/"
 
+    if not os.path.exists("./screening_data/" + date_day + "/pool/"):
+        os.makedirs("./screening_data/" + date_day + "/pool/")
+    config.OUTPUT_POOL_DIR = "./screening_data/" + date_day + "/pool/"
+    for f in os.listdir(config.OUTPUT_POOL_DIR):
+        os.remove(os.path.join(config.OUTPUT_POOL_DIR, f))
+
+
 if __name__ == '__main__':
 
     if (str(sys.argv[1]) == "--COLAB"):

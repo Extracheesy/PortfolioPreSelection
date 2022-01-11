@@ -4,6 +4,8 @@ from selenium import webdriver
 import pandas as pd
 import numpy as np
 #import asyncio
+import uuid
+import datetime
 
 import concurrent.futures
 
@@ -127,6 +129,7 @@ def get_df_info_list(list_stocks):
 
             quote_data = si.get_quote_data(stock)
             exchange = quote_data['fullExchangeName']
+            toto = '0'
         except:
             try:
                 info = si.get_company_info(stock)
@@ -139,6 +142,7 @@ def get_df_info_list(list_stocks):
                 yahoo_recommendation_split = yahoo_recommendation.split(" - ")
                 yahoo_recom_mean = yahoo_recommendation_split[0]
                 yahoo_recom_key = yahoo_recommendation_split[1]
+                toto = '1'
                 try:
                     company_name = quote_data['shortName']
                 except:
@@ -149,6 +153,59 @@ def get_df_info_list(list_stocks):
             except:
                 print('error yahoo data stock: ',stock)
                 get_data_success = False
+        if get_data_success == True:
+            print('get yahoo data stock: ', stock,' -> ',toto)
+            list_tickers.append(stock)
+            list_sectors.append(sector)
+            list_industry.append(industry)
+            list_company_name.append(company_name)
+            list_country.append(country)
+            list_exchange.append(exchange)
+            list_yahoo_recom_key.append(yahoo_recom_key)
+            list_yahoo_recom_mean.append(yahoo_recom_mean)
+        else:
+            get_data_success = True
+
+    df = make_df_stock_info(list_tickers, list_company_name,
+                            list_sectors, list_industry,
+                            list_country, list_exchange,
+                            list_yahoo_recom_mean, list_yahoo_recom_key)
+
+    return df
+
+def get_multithreading_df_info_list(list_stocks):
+    list_tickers = []
+    list_sectors = []
+    list_industry = []
+    list_company_name = []
+    list_country = []
+    list_exchange = []
+    list_yahoo_recom_mean = []
+    list_yahoo_recom_key = []
+    for stock in list_stocks:
+        get_data_success = True
+        sector = '-'
+        industry = ('-')
+        company_name = ('-')
+        country = ('-')
+        exchange = ('-')
+        yahoo_recom_key = ('-')
+        yahoo_recom_mean = ('-')
+        try:
+            yf_stock = yf.Ticker(stock)
+            industry = yf_stock.info['industry']
+            sector = yf_stock.info['sector']
+            company_name = yf_stock.info['shortName']
+            country = yf_stock.info['country']
+            exchange = yf_stock.info['exchange']
+            yahoo_recom_key = yf_stock.info['recommendationKey']
+            yahoo_recom_mean = yf_stock.info['recommendationMean']
+
+            quote_data = si.get_quote_data(stock)
+            exchange = quote_data['fullExchangeName']
+        except:
+            print('error yahoo data stock: ',stock)
+            get_data_success = False
         if get_data_success == True:
             print('get yahoo data stock: ', stock)
             list_tickers.append(stock)
@@ -167,7 +224,9 @@ def get_df_info_list(list_stocks):
                             list_country, list_exchange,
                             list_yahoo_recom_mean, list_yahoo_recom_key)
 
-    return df
+    filename = config.OUTPUT_POOL_DIR + str(uuid.uuid4()) + '.csv'
+    df.to_csv(filename)
+
 
 def get_info_list(list_stocks):
     list_tickers = []
@@ -565,18 +624,19 @@ def get_YAHOO_ticker_list():
             # for i in range(config.NB_SPLIT_LIST_SYMBOL):
             #    call_list.append(get_df_info_list(global_split_list[i]))
 
-            if config.ASYNCIO == True:
-                # asyncio.run(get_asyncio_df_info_list(call_list))
-
-                # this is the event loop
-                # loop = asyncio.get_event_loop()
-
-                # schedule coroutines to run on the event loop
-                # loop.run_until_complete(asyncio.gather(call_list[2], call_list[3]))
-
+            if config.MULTITHREADING == True:
+                print("MULTITHREADING START")
+                START_TIME = datetime.datetime.now().now()
                 with concurrent.futures.ThreadPoolExecutor(max_workers=config.NUM_THREADS) as executor:
-                    executor.map(get_df_info_list, global_split_list)
-
+                    executor.map(get_multithreading_df_info_list, global_split_list)
+                print("MULTITHREADING RUNTIME: ", datetime.datetime.now().now() - START_TIME)
+            elif config.ASYNCIO == True:
+                print("ASYNCIO")
+                # asyncio.run(get_asyncio_df_info_list(call_list))
+                # this is the event loop
+                loop = asyncio.get_event_loop()
+                # schedule coroutines to run on the event loop
+                loop.run_until_complete(asyncio.gather(call_list[2], call_list[3]))
             else:
                 df_result = get_df_info_list(list_symbol)
 

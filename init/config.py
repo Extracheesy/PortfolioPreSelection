@@ -21,6 +21,7 @@ DATE = "2022-01-08"
 
 TEST_GLOBAL = True
 # TEST_GLOBAL = False
+MULTITHREADING = True
 ASYNCIO = True
 NB_SPLIT_LIST_SYMBOL = 30
 NUM_THREADS = 30
@@ -38,6 +39,7 @@ DRIVER_PATH = "./chromedriver.exe"
 DIR = "./screening_data/"
 STOCK_DATA_DIR = ""
 OUTPUT_DIR = ""
+OUTPUT_POOL_DIR = ""
 
 """
 region_idx= 
@@ -49,7 +51,6 @@ region_idx=
   'Europe' : ['^FTSE', '^GDAXI', '^FCHI', '^STOXX50E','^N100', '^BFX']
 }
 """
-
 
 YAHOO = ['MUV2.DE', 'FRE.DE', 'VNA.DE', 'SU.PA', 'ML.PA', 'MC.PA', 'HO.PA', 'EN.PA', 'EL.PA', 'DG.PA', 'CS.PA', 'CAP.PA', 'BNP.PA', 'BN.PA', 'ALO.PA', 'ACA.PA']
 COUNTRY = ['germany', 'germany', 'germany', 'france','france', 'france', 'france', 'france', 'france', 'france', 'france', 'france', 'france', 'france', 'france', 'france']
